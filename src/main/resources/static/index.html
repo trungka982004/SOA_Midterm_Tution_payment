@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iBanking - Thanh toán học phí</title>
+    <style>
+        /* CSS Styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .view {
+            display: none; /* Ẩn tất cả các view ban đầu */
+        }
+        .view.active {
+            display: block; /* Chỉ hiện view active */
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .form-group input:read-only {
+            background-color: #ecf0f1;
+            cursor: not-allowed;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+        .terms {
+            display: flex;
+            align-items: center;
+        }
+        .terms input {
+            width: auto;
+            margin-right: 10px;
+        }
+        .message {
+            text-align: center;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .message.error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .message.success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .info-section {
+            border: 1px solid #e0e0e0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .info-section h3 {
+            margin-top: 0;
+            color: #3498db;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>iBanking TDTU</h1>
+
+    <div id="login-view" class="view active">
+        <h2>Đăng nhập</h2>
+        <form id="login-form">
+            <div id="login-error" class="message error" style="display: none;"></div>
+            <div class="form-group">
+                <label for="username">Tên đăng nhập</label>
+                <input type="text" id="username" value="nguyenvana" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Mật khẩu</label>
+                <input type="password" id="password" value="password123" required>
+            </div>
+            <button type="submit">Đăng nhập</button>
+        </form>
+    </div>
+
+    <div id="payment-view" class="view">
+        <h2>Thanh toán học phí</h2>
+        <div id="payment-error" class="message error" style="display: none;"></div>
+
+        <div class="info-section">
+            <h3>Thông tin người trả</h3>
+            <div class="form-group">
+                <label>Họ tên</label>
+                <input type="text" id="payer-name" readonly>
+            </div>
+            <div class="form-group">
+                <label>Số dư khả dụng</label>
+                <input type="text" id="payer-balance" readonly>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>Thông tin học phí</h3>
+            <div class="form-group">
+                <label for="student-id">Nhập MSSV</label>
+                <input type="text" id="student-id" placeholder="VD: 52100123">
+                <button type="button" id="find-student-btn" style="margin-top: 10px;">Tìm sinh viên</button>
+            </div>
+            <div class="form-group">
+                <label>Tên sinh viên</label>
+                <input type="text" id="student-name" readonly>
+            </div>
+            <div class="form-group">
+                <label>Số tiền cần thanh toán</label>
+                <input type="text" id="tuition-amount" readonly>
+            </div>
+        </div>
+        
+        <div class="form-group terms">
+            <input type="checkbox" id="terms-checkbox">
+            <label for="terms-checkbox">Tôi đồng ý với các điều khoản & điều kiện</label>
+        </div>
+
+        <button id="initiate-payment-btn" disabled>Thanh toán</button>
+    </div>
+
+    <div id="otp-view" class="view">
+        <h2>Xác thực giao dịch</h2>
+        <div id="otp-error" class="message error" style="display: none;"></div>
+        <p style="text-align: center;">Mã OTP đã được gửi đến email của bạn. Vui lòng nhập mã để hoàn tất giao dịch.</p>
+        <div class="form-group">
+            <label for="otp-code">Mã OTP</label>
+            <input type="text" id="otp-code" maxlength="6" placeholder="******">
+        </div>
+        <button id="confirm-payment-btn">Xác nhận</button>
+    </div>
+
+    <div id="result-view" class="view">
+        <h2>Kết quả giao dịch</h2>
+        <div id="result-message" class="message"></div>
+        <button id="new-payment-btn">Thực hiện giao dịch khác</button>
+    </div>
+
+</div>
+
+<script>
+    // JavaScript Logic
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- State Management ---
+        const API_BASE_URL = 'http://localhost:8080/api';
+        let userCredentials = null; // Sẽ lưu thông tin đăng nhập
+        let currentStudentId = null;
+        let tuitionAmount = 0;
+        let payerBalance = 0;
+
+        // --- DOM Elements ---
+        const views = document.querySelectorAll('.view');
+        const loginForm = document.getElementById('login-form');
+        const findStudentBtn = document.getElementById('find-student-btn');
+        const initiatePaymentBtn = document.getElementById('initiate-payment-btn');
+        const confirmPaymentBtn = document.getElementById('confirm-payment-btn');
+        const newPaymentBtn = document.getElementById('new-payment-btn');
+        const termsCheckbox = document.getElementById('terms-checkbox');
+        const studentIdInput = document.getElementById('student-id');
+        
+        // --- Functions ---
+
+        // Hàm chuyển đổi giữa các view
+        const showView = (viewId) => {
+            views.forEach(view => {
+                view.classList.remove('active');
+            });
+            document.getElementById(viewId).classList.add('active');
+        };
+
+        // Hàm hiển thị lỗi
+        const showError = (elementId, message) => {
+            const errorEl = document.getElementById(elementId);
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        };
+
+        // Hàm ẩn lỗi
+        const hideError = (elementId) => {
+            document.getElementById(elementId).style.display = 'none';
+        };
+
+        // Định dạng tiền tệ
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+        };
+        
+        // Hàm kiểm tra để bật/tắt nút "Thanh toán"
+        const validatePaymentForm = () => {
+            const isStudentInfoFilled = document.getElementById('student-name').value !== '';
+            const isTermsChecked = termsCheckbox.checked;
+            const canAfford = payerBalance >= tuitionAmount && tuitionAmount > 0;
+            
+            initiatePaymentBtn.disabled = !(isStudentInfoFilled && isTermsChecked && canAfford);
+        };
+
+        // Hàm xử lý Đăng nhập
+        const handleLogin = async (event) => {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                showError('login-error', 'Vui lòng nhập đầy đủ thông tin.');
+                return;
+            }
+
+            userCredentials = 'Basic ' + btoa(`${username}:${password}`);
+            
+            // Lấy thông tin người trả tiền
+            try {
+                const response = await fetch(`${API_BASE_URL}/payment/payer-info?username=${username}`);
+
+                if (!response.ok) {
+                    throw new Error('Tên đăng nhập hoặc mật khẩu không đúng.');
+                }
+
+                const data = await response.json();
+                document.getElementById('payer-name').value = data.fullName;
+                document.getElementById('payer-balance').value = formatCurrency(data.availableBalance);
+                payerBalance = data.availableBalance;
+                
+                hideError('login-error');
+                showView('payment-view');
+            } catch (error) {
+                showError('login-error', error.message);
+            }
+        };
+
+        // Hàm tìm sinh viên
+        const handleFindStudent = async () => {
+            const studentId = studentIdInput.value;
+            if (!studentId) {
+                showError('payment-error', 'Vui lòng nhập Mã số sinh viên.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/payment/student-info/${studentId}`);
+                
+                if (!response.ok) {
+                    throw new Error('Không tìm thấy sinh viên với MSSV này.');
+                }
+
+                const data = await response.json();
+                document.getElementById('student-name').value = data.fullName;
+                document.getElementById('tuition-amount').value = formatCurrency(data.tuitionAmount);
+                currentStudentId = data.studentId;
+                tuitionAmount = data.tuitionAmount;
+                
+                hideError('payment-error');
+                if (data.tuitionAmount <= 0) {
+                    showError('payment-error', 'Sinh viên này đã thanh toán xong học phí.');
+                } else if (payerBalance < data.tuitionAmount) {
+                    showError('payment-error', 'Số dư không đủ để thực hiện giao dịch.');
+                }
+            } catch (error) {
+                showError('payment-error', error.message);
+                document.getElementById('student-name').value = '';
+                document.getElementById('tuition-amount').value = '';
+                currentStudentId = null;
+                tuitionAmount = 0;
+            } finally {
+                validatePaymentForm();
+            }
+        };
+
+        // Hàm bắt đầu thanh toán (gửi OTP)
+        const handleInitiatePayment = async () => {
+            initiatePaymentBtn.disabled = true;
+            initiatePaymentBtn.textContent = 'Đang xử lý...';
+
+            try {
+            	const username = document.getElementById('username').value;
+                const response = await fetch(`${API_BASE_URL}/payment/initiate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': userCredentials
+                    },
+                    body: JSON.stringify({ username: username, studentId: currentStudentId })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText);
+                }
+
+                hideError('payment-error');
+                showView('otp-view');
+            } catch (error) {
+                showError('payment-error', error.message);
+            } finally {
+                initiatePaymentBtn.disabled = false;
+                initiatePaymentBtn.textContent = 'Thanh toán';
+            }
+        };
+
+        // Hàm xác nhận thanh toán (với OTP)
+        const handleConfirmPayment = async () => {
+            const otpCode = document.getElementById('otp-code').value;
+            if (!otpCode || otpCode.length !== 6) {
+                showError('otp-error', 'Mã OTP không hợp lệ.');
+                return;
+            }
+
+            confirmPaymentBtn.disabled = true;
+            confirmPaymentBtn.textContent = 'Đang xác nhận...';
+
+            try {
+            	const username = document.getElementById('username').value;
+                const response = await fetch(`${API_BASE_URL}/payment/confirm`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': userCredentials
+                    },
+                    body: JSON.stringify({ username: username, studentId: currentStudentId, otpCode: otpCode })
+                });
+                
+                const resultMessageEl = document.getElementById('result-message');
+                if (response.ok) {
+                    resultMessageEl.textContent = 'Giao dịch thành công!';
+                    resultMessageEl.className = 'message success';
+                } else {
+                    const errorText = await response.text();
+                    resultMessageEl.textContent = `Giao dịch thất bại: ${errorText}`;
+                    resultMessageEl.className = 'message error';
+                }
+                showView('result-view');
+            } catch (error) {
+                 const resultMessageEl = document.getElementById('result-message');
+                 resultMessageEl.textContent = `Đã xảy ra lỗi: ${error.message}`;
+                 resultMessageEl.className = 'message error';
+                 showView('result-view');
+            } finally {
+                confirmPaymentBtn.disabled = false;
+                confirmPaymentBtn.textContent = 'Xác nhận';
+                document.getElementById('otp-code').value = '';
+            }
+        };
+
+        // Hàm reset về trang thanh toán
+        const resetToNewPayment = () => {
+            // Reset các trường input
+            studentIdInput.value = '';
+            document.getElementById('student-name').value = '';
+            document.getElementById('tuition-amount').value = '';
+            termsCheckbox.checked = false;
+            initiatePaymentBtn.disabled = true;
+            currentStudentId = null;
+            tuitionAmount = 0;
+            // Tải lại thông tin mới nhất của người dùng
+            handleLogin({ preventDefault: () => {} });
+            showView('payment-view');
+        };
+
+        // --- Event Listeners ---
+        loginForm.addEventListener('submit', handleLogin);
+        findStudentBtn.addEventListener('click', handleFindStudent);
+        termsCheckbox.addEventListener('change', validatePaymentForm);
+        initiatePaymentBtn.addEventListener('click', handleInitiatePayment);
+        confirmPaymentBtn.addEventListener('click', handleConfirmPayment);
+        newPaymentBtn.addEventListener('click', resetToNewPayment);
+    });
+</script>
+
+</body>
+</html>
