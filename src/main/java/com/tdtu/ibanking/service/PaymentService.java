@@ -50,61 +50,62 @@ public class PaymentService {
         }
 
         String otp = generateOtp();
-        
         OtpCode otpCode = new OtpCode();
-        otpCode.setEmail(user.getEmail());
+
+        otpCode.setUser(user);
+        
         otpCode.setCode(otp);
         otpCode.setExpiryTime(LocalDateTime.now().plusMinutes(OTP_VALIDITY_MINUTES));
         otpCode.setIsUsed(false);
         otpCodeRepository.save(otpCode);
-        
+
         emailService.sendOtpEmail(user.getEmail(), otp);
     }
 
     @Transactional
     public void confirmPayment(String username, String studentId, String otpCode) {
-        User payer = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Payer not found: " + username));
+        User lockedPayer = userRepository.findAndLockByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        
+        validateOtp(lockedPayer.getEmail(), otpCode);
 
-        validateOtp(payer.getEmail(), otpCode);
-        
-        User lockedPayer = userRepository.findById(payer.getId())
-                .orElseThrow(() -> new RuntimeException("Payer not found: " + username));
-        
-        Student student = studentRepository.findByStudentId(studentId)
+        Student lockedStudent = studentRepository.findAndLockByStudentId(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found: " + studentId));
 
-        BigDecimal tuitionAmount = student.getTuitionAmount();
+        BigDecimal tuitionAmount = lockedStudent.getTuitionAmount();
 
-        if (tuitionAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            saveFailedTransaction(lockedPayer, studentId, BigDecimal.ZERO, "Tuition already paid");
-            throw new RuntimeException("This student's tuition has already been paid.");
-        }
         if (lockedPayer.getAvailableBalance().compareTo(tuitionAmount) < 0) {
-            saveFailedTransaction(lockedPayer, studentId, tuitionAmount, "Insufficient balance");
-            throw new RuntimeException("Insufficient balance.");
+            saveFailedTransaction(lockedPayer, lockedStudent, tuitionAmount, "Insufficient funds after lock.");
+            throw new RuntimeException("Insufficient funds.");
+        }
+        
+        if (tuitionAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            saveFailedTransaction(lockedPayer, lockedStudent, tuitionAmount, "Tuition already paid by another transaction.");
+            throw new RuntimeException("Tuition has already been paid by another transaction.");
         }
 
         lockedPayer.setAvailableBalance(lockedPayer.getAvailableBalance().subtract(tuitionAmount));
         userRepository.save(lockedPayer);
 
-        student.setTuitionAmount(BigDecimal.ZERO);
-        studentRepository.save(student);
+        lockedStudent.setTuitionAmount(BigDecimal.ZERO);
+        studentRepository.save(lockedStudent);
 
         TransactionHistory history = new TransactionHistory();
         history.setUser(lockedPayer);
-        history.setStudentIdPaidFor(studentId);
+        
+        history.setStudent(lockedStudent);
+        
         history.setAmount(tuitionAmount);
         history.setTransactionDate(LocalDateTime.now());
         history.setStatus("SUCCESS");
-        history.setDescription("Successfully paid tuition for student " + student.getFullName());
+        history.setDescription("Successfully paid tuition for student " + lockedStudent.getFullName());
         transactionHistoryRepository.save(history);
 
-        emailService.sendTransactionSuccessEmail(lockedPayer.getEmail(), student.getFullName(), tuitionAmount.toString());
+        emailService.sendTransactionSuccessEmail(lockedPayer.getEmail(), lockedStudent.getFullName(), tuitionAmount.toString());
     }
 
     private void validateOtp(String email, String code) {
-        OtpCode otp = otpCodeRepository.findByCodeAndEmail(code, email)
+        OtpCode otp = otpCodeRepository.findByCodeAndUser_Email(code, email)
                 .orElseThrow(() -> new RuntimeException("Invalid OTP code."));
 
         if (otp.getIsUsed()) {
@@ -117,11 +118,13 @@ public class PaymentService {
         otp.setIsUsed(true);
         otpCodeRepository.save(otp);
     }
-    
-    private void saveFailedTransaction(User user, String studentId, BigDecimal amount, String reason) {
+
+    private void saveFailedTransaction(User user, Student student, BigDecimal amount, String reason) {
         TransactionHistory history = new TransactionHistory();
         history.setUser(user);
-        history.setStudentIdPaidFor(studentId);
+        
+        history.setStudent(student);
+        
         history.setAmount(amount);
         history.setTransactionDate(LocalDateTime.now());
         history.setStatus("FAILED");

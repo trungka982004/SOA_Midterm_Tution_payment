@@ -17,8 +17,9 @@ public class OtpCode {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String email;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "email", referencedColumnName = "email", nullable = false)
+    private User user;
 
     @Column(nullable = false, length = 6)
     private String code;

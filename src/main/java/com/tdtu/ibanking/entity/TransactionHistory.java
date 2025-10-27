@@ -19,19 +19,20 @@ public class TransactionHistory {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
     private User user;
 
-    @Column(name = "student_id_paid_for", nullable = false)
-    private String studentIdPaidFor;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id_paid_for", referencedColumnName = "student_id", nullable = false)
+    private Student student;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
 
     @Column(name = "transaction_date", nullable = false)
     private LocalDateTime transactionDate;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String status;
     
     @Column

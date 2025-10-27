@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PaymentInitiateRequest {
-    private String studentId;
+public class LoginRequest {
+    private String username;
+    private String password;
 }

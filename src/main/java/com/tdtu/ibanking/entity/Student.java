@@ -17,12 +17,12 @@ public class Student {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "student_id", nullable = false, unique = true)
+    @Column(name = "student_id", nullable = false, unique = true, length = 10)
     private String studentId;
 
-    @Column(name = "full_name", nullable = false)
+    @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
-    @Column(name = "tuition_amount", nullable = false)
+    @Column(name = "tuition_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal tuitionAmount;
 }

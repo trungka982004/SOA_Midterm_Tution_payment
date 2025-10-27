@@ -1,8 +1,8 @@
 package com.tdtu.ibanking.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Data
 @NoArgsConstructor
@@ -10,5 +10,4 @@ import lombok.NoArgsConstructor;
 public class PaymentConfirmRequest {
     private String studentId;
     private String otpCode;
-    private String username;
 }
