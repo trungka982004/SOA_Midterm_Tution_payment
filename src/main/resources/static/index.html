@@ -233,6 +233,10 @@
                 <input type="text" id="payer-name" readonly>
             </div>
             <div class="form-group">
+                <label for="payer-phone-number">Số điện thoại</label>
+                <input type="text" id="payer-phone-number" readonly>
+            </div>
+            <div class="form-group">
                 <label for="payer-email">Email</label>
                 <input type="text" id="payer-email" readonly>
             </div>
@@ -326,6 +330,7 @@
         const loginError = document.getElementById('login-error');
         
         const payerNameInput = document.getElementById('payer-name');
+        const payerPhoneNumberInput = document.getElementById('payer-phone-number');
         const payerEmailInput = document.getElementById('payer-email');
         const availableBalanceInput = document.getElementById('available-balance');
         
@@ -434,6 +439,7 @@
                 
                 // Điền thông tin vào form
                 payerNameInput.value = data.fullName;
+                payerPhoneNumberInput.value = data.phoneNumber;
                 payerEmailInput.value = data.email;
                 availableBalanceInput.value = formatCurrency(data.availableBalance);
                 otpEmailDisplay.textContent = data.email; // Cập nhật email cho màn hình OTP
